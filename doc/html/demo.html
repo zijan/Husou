@@ -1,0 +1,194 @@
+﻿<html lang="zh-CN">
+  <head>
+    <script type="text/javascript"
+          src="https://www.google.com/jsapi?autoload={
+            'modules':[{
+              'name':'visualization',
+              'version':'1',
+              'packages':['corechart']
+            }]
+          }"></script>
+
+    <script type="text/javascript">
+      google.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+          ['日期', '出现次数'],
+		  ['02-22',  360],
+		  ['02-23',  500],
+		  ['02-24',  780],
+          ['02-25',  980],
+          ['02-26',  1170],
+          ['02-27',  860],
+          ['02-28',  1030]
+        ]);
+
+        var options = {
+          title: '关键词每日出现次数',
+          curveType: 'function',
+          legend: { position: 'bottom' }
+        };
+
+        var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
+
+        chart.draw(data, options);
+      }
+    </script>
+	
+	
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+      google.load("visualization", "1", {packages:["geochart"]});
+      google.setOnLoadCallback(drawRegionsMap);
+
+      function drawRegionsMap() {
+
+        var data = google.visualization.arrayToDataTable([
+			['省份', '数量', 'Area'],
+			['shanghai',　　　　2761477,    1285.31],
+			['beijing',　　 　　1324110,    181.76],
+			['shenzhen',   　　959574,     117.27],
+			['yantai',     　　907563,     130.17],
+			['jinan',      　　655875,     158.9],
+			['guilin',     　　607906,     243.60],
+			['haerbin',    　　380181,     140.7],
+			['suzhou',     　　371282,     102.41],
+			['qiqihaer',   　　67370,      213.44],
+			['guanzhou',   　　52192,      43.43],
+			['shijiazhuang',   38262,      11]
+		  ]);
+
+        var options = {
+			region: 'CN',
+			displayMode: 'markers',
+			colorAxis: {colors: ['green', 'blue']}
+		  };
+
+        var chart = new google.visualization.GeoChart(document.getElementById('regions_div'));
+
+        chart.draw(data, options);
+      }
+    </script>
+	
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+      google.load("visualization", "1", {packages:["corechart"]});
+      google.setOnLoadCallback(drawChart);
+      function drawChart() {
+
+        var data = google.visualization.arrayToDataTable([
+          ['性别', '男女'],
+          ['男',     11],
+          ['女',      2]
+        ]);
+
+        var options = {
+          title: '作者男女比例'
+        };
+
+        var chart = new google.visualization.PieChart(document.getElementById('piechart'));
+
+        chart.draw(data, options);
+      }
+    </script>
+	
+	<script type="text/javascript" src="https://www.google.com/jsapi?autoload={'modules':[{'name':'visualization','version':'1','packages':['corechart']}]}"></script>
+	<script type="text/javascript">
+	google.load('visualization', '1', {packages: ['corechart']});
+    google.setOnLoadCallback(drawChart);
+
+    function drawChart() {
+
+      var data = google.visualization.arrayToDataTable([
+        ['年龄',          '关键词次数'],
+        ['18岁以下',       81750],
+        ['19到25',         37920],
+        ['26到35',         26950],
+        ['35到49',         20990],
+        ['50岁以上',       15260]
+      ]);
+
+      var options = {
+        title: '作者年龄分析',
+        width: 1000,
+        height: 563,
+        hAxis: {
+          title: '提及关键词次数',
+          minValue: 0
+        },
+        vAxis: {
+          title: '年龄'
+        }
+      };
+
+      var chart = new google.visualization.BarChart(document.getElementById('bars'));
+
+      chart.draw(data, options);
+    }
+	</script>
+	
+	
+	
+  </head>
+  <body>
+	
+	关键词：	<input type="text" name="firstname" /><br><br>
+	开始时间： <input type="text" name="firstname" /> 结束时间： <input type="text" name="firstname" /> <input type="submit" value="搜索" /><br><br>
+	
+	<h2>关键词每日出现次数</h2>
+    <div id="curve_chart" style="width: 900px; height: 500px"></div>
+	<br><br><br><br>
+	
+	<h2>关键词地理定位</h2>
+	<div id="regions_div" style="width: 900px; height: 500px;"></div>
+	<br><br><br><br>
+	
+	<h2>作者男女比例</h2>
+	<div id="piechart" style="width: 900px; height: 500px;"></div>
+	<br><br><br><br>
+	
+	<h2>作者年龄比例</h2>
+	<div id="bars" style="width: 900px; height: 500px;"></div>
+	<br><br><br><br>
+	
+	<h2>内容词云</h2>
+	<img src="wordcloud.jpg" />
+	<br><br><br><br>
+	
+	<h2>最近内容展示</h2>
+	<pre>
+	销售主管如何“养虎”
+	Authority 0 bbs.xiceo.com | 培训发展
+
+	Feb, 28, 2015 06:17 PM   from 124.200.107.86
+	打胜仗要有过硬的队伍，优秀销售业绩同样也得靠骁勇善战的营销团队打拼出来。作为销售主管，你当...道该如何处理了。（5）游戏培训。如...常采用游戏式的培训方法。根据...种情况。虽然在游戏中有的业务...
+	企业文化的战略导向 成功关键在于战略文化合力
+	Authority 0 bbs.xiceo.com | 企业文化
+
+	Feb, 28, 2015 03:00 PM   from 202.60.112.42
+	战略问题是现代企业管理者必须研究和思考的首要问题。世界新经济浪潮的到来，使现代企业进入了一个战略制胜的年代，实施企业战略管理比任何时候都显得更为重要。战略管理就是对宏观环境、行业态势、竞争对手以及自身资源情况作出分析，根据企业的愿景目标，提出企业未来所采取的行动，并付诸和监控实施、评估实施结果的过程。战略管理满足了企业关注竞争环境、关注企业未来的需求。所以企业管理的发展方向是战略导向的企业管理。但是，用什么来引领企业战略的制定呢...。也就是说价值观制定着游戏规...
+	奥克兰冬天有岸钓的地方否？
+	Authority 0 tmdfish.com | 神秘钓点 - TMDfish 分享与交流
+
+	Feb, 28, 2015 01:31PM  
+	呃。。。有时候冬天实在没办法去钓鱼，也在电脑上玩玩钓鱼游戏过瘾。。。
+	泰山石敢当之雄峙天东里居然冒出与我们寻仙相似的坐骑和人物形象-
+	Authority 1 bbs.duowan.com | 综合讨论区_多玩游戏论坛 -
+
+	Feb, 28, 2015 10:58AM  
+	我就说几句……寻仙也抄袭了很多别人的东西啊……比如剑的极影……NMB几年年前有个游戏叫金庸群侠
+	回答五个问题掂量培训成效
+	Authority 0 bbs.xiceo.com | 培训发展
+
+	Feb, 28, 2015 10:51 AM   from 202.60.112.42
+	对管理人员的培训，是企业不可缺少的投资之一。怎样才能确保培训投资获得有效回报，即用什么样的模式才能更有效地培训企业的这些骨干力量？以下5个问题决定了你的培训成效。第一问：30人还是50人？在决定培训管理人员之前，首先要明确培训对象，是企业首脑还是某个部门管理人员，如人力资源部门、财务部门、生产部门等。明确了培训对象，才能有针对性地设置培训课程；培训对象的确定还包括对培训对象数量的确定，参加培训的是30人？50人？或者更多？知道了...战模拟类似电脑游戏，把学员分...
+	都来说说大家启动游戏要多长时间-
+	Authority 1 bbs.duowan.com | 综合讨论区_多玩游戏论坛 -
+
+	Feb, 28, 2015 10:50AM  
+	开机到上线！五分钟
+	</pre>
+	
+  </body>
+</html>
