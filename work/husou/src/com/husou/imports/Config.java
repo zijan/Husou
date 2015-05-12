@@ -6,8 +6,6 @@ public class Config {
     private String dbUrl;
     private String dbUser;
     private String dbPass;
-    private int hid;
-    private String solrHost;
     private int batchSize;
     private int waitInterval;
     private boolean keepRunning;
@@ -17,13 +15,11 @@ public class Config {
     public Config() {
     }
 
-    public Config(Properties prop, int hid) throws IllegalArgumentException {
+    public Config(Properties prop) throws IllegalArgumentException {
     	
         this.dbUrl = prop.getProperty("dbUrl");
         this.dbUser = prop.getProperty("dbUser");
         this.dbPass = prop.getProperty("dbPass");
-        this.solrHost = prop.getProperty("solrHost") + "/" + hid + "/";
-        this.hid = hid;
         String batchSize = prop.getProperty("batchSize", "10");
         this.batchSize = Integer.valueOf(batchSize);
         String waitInterval = prop.getProperty("waitInterval", "10");
@@ -56,22 +52,6 @@ public class Config {
 
     public void setDbPass(String dbPass) {
         this.dbPass = dbPass;
-    }
-
-    public int getHid() {
-        return hid;
-    }
-
-    public void setHid(int hid) {
-        this.hid = hid;
-    }
-
-    public String getSolrHost() {
-        return solrHost;
-    }
-
-    public void setSolrHost(String solrHost) {
-        this.solrHost = solrHost;
     }
 
     public int getBatchSize() {

@@ -33,8 +33,8 @@ public class ESImport extends Thread{
     private int yearBase = 1900;
     private TransportClient client;
     
-    private String indexName = "hbindex";
-    private String typename = "heartbeat";
+    private String indexName = "LianTong";
+    private String typename = "SearchKeyWord";
     
 	public ESImport(Config config) throws Exception {
         Class.forName("com.mysql.jdbc.Driver");
@@ -48,7 +48,6 @@ public class ESImport extends Thread{
     }
 	
 	public void run() {
-		int hid = config.getHid();
         logger.info("started thread for hid:" + hid + "\t batch size:" + config.getBatchSize());
         String beatSql = "select b.*, t.taglist FROM beats_hb" + hid + " b, taglist_hb" + hid + " t "
                 + " where b.bid=t.bid "
@@ -65,10 +64,10 @@ public class ESImport extends Thread{
         //check index exist
         client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet(); 
         ClusterStateResponse response = client.admin().cluster().prepareState().execute().actionGet(); 
-        boolean hasIndex = response.getState().metaData().hasIndex(indexName+hid);
+        boolean hasIndex = response.getState().metaData().hasIndex(indexName);
         if(hasIndex){
         	//find last bid
-        	SearchRequestBuilder builder= client.prepareSearch(indexName+hid)  
+        	SearchRequestBuilder builder= client.prepareSearch(indexName)  
                     .setTypes(typename)  
                     .setSearchType(SearchType.DEFAULT)  
                     .setFrom(0)  

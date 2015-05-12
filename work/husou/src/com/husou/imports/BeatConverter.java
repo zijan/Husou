@@ -19,12 +19,10 @@ public class BeatConverter {
                 String[] nv = arg.split("=");
                 prop.put(nv[0], nv[1]);
             }
-            String hids = prop.getProperty("hids");
-            for (String hid : hids.split(",")) {
-                Config config = new Config(prop, Integer.valueOf(hid));
-                Thread importer = new ESImport(config);
-                importer.start();
-            }
+
+            Config config = new Config(prop);
+            Thread importer = new ESImport(config);
+            importer.start();
 
         } catch (IOException ex) {
             ex.printStackTrace();
