@@ -20,9 +20,9 @@ public class Config {
         this.dbUrl = prop.getProperty("dbUrl");
         this.dbUser = prop.getProperty("dbUser");
         this.dbPass = prop.getProperty("dbPass");
-        String batchSize = prop.getProperty("batchSize", "10");
+        String batchSize = prop.getProperty("batchSize", "1000");
         this.batchSize = Integer.valueOf(batchSize);
-        String waitInterval = prop.getProperty("waitInterval", "10");
+        String waitInterval = prop.getProperty("waitInterval", "300");
         this.waitInterval = Integer.valueOf(waitInterval);
         String keepRunning = prop.getProperty("keepRunning", "false");
         this.keepRunning = Boolean.valueOf(keepRunning);

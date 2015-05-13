@@ -33,8 +33,8 @@ public class ESImport extends Thread{
     private int yearBase = 1900;
     private TransportClient client;
     
-    private String indexName = "LianTong";
-    private String typename = "SearchKeyWord";
+    private String indexName = "unicom";
+    private String typename = "searchword";
     
 	public ESImport(Config config) throws Exception {
         Class.forName("com.mysql.jdbc.Driver");
@@ -48,18 +48,14 @@ public class ESImport extends Thread{
     }
 	
 	public void run() {
-        logger.info("started thread for hid:" + hid + "\t batch size:" + config.getBatchSize());
-        String beatSql = "select b.*, t.taglist FROM beats_hb" + hid + " b, taglist_hb" + hid + " t "
-                + " where b.bid=t.bid "
-                + " and b.bid > ?  "
-                + " order by b.bid asc "
-                + " limit " + config.getBatchSize();
+        logger.info("started thread batch size:" + config.getBatchSize());
+        String sql = "SELECT CONCAT(t.Number, UNIX_TIMESTAMP(t.CreateTime)) rid, t.* FROM `2015` t WHERE UNIX_TIMESTAMP(t.CreateTime) >= ? LIMIT " + config.getBatchSize();
 
         PreparedStatement stat = null;
         ResultSet rs = null;
         
         BulkRequestBuilder bulkRequest = client.prepareBulk();
-        int storedBid = -1;
+        long storedCreateTimeLong = -1;
         
         //check index exist
         client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet(); 
@@ -72,19 +68,19 @@ public class ESImport extends Thread{
                     .setSearchType(SearchType.DEFAULT)  
                     .setFrom(0)  
                     .setSize(1)
-                    .addSort(SortBuilders.fieldSort("bid").order(SortOrder.DESC)); 
+                    .addSort(SortBuilders.fieldSort("CreateTime").order(SortOrder.DESC)); 
 
             SearchResponse searchResponse = builder.execute().actionGet();
             SearchHits hits = searchResponse.getHits();
             
             if(hits.totalHits() < 1){
-            	storedBid = 0;
+            	storedCreateTimeLong = 0;
             }else{
-            	int bid = (int)hits.getAt(0).getSource().get("bid");
-            	storedBid = bid;
+            	Date createTime = (Date)hits.getAt(0).getSource().get("CreateTime");
+            	storedCreateTimeLong = createTime.getTime() / 1000;
             }
         }else{
-        	storedBid = 0;
+        	storedCreateTimeLong = 0;
         }
         
         
@@ -94,8 +90,8 @@ public class ESImport extends Thread{
 
                 	long timeflag = System.currentTimeMillis();
                 	
-                    stat = conn.prepareStatement(beatSql);
-                    stat.setInt(1, storedBid);
+                    stat = conn.prepareStatement(sql);
+                    stat.setLong(1, storedCreateTimeLong);
 
                     logger.info("\n" + stat);
                     rs = stat.executeQuery();
@@ -106,10 +102,7 @@ public class ESImport extends Thread{
                         i++;
                         empty = false;
                         Map<String, Object> fields = rowToMap(rs);
-                        
-                        index(indexName+hid, bulkRequest, fields);
-                        
-                        storedBid = rs.getInt("bid");
+                        index(indexName, bulkRequest, fields);
                     }
                     
                     if(!empty){
@@ -120,27 +113,27 @@ public class ESImport extends Thread{
             	        }
             	        
             	        long time = (System.currentTimeMillis() - timeflag)/1000;
-                        logger.info("added " + i + " docs for hid:" + hid + " [takes: "+time+"s]");
+                        logger.info("added " + i + " docs [takes: "+time+"s]");
                         if (!config.isKeepRunning()) {
                             logger.info("Not in keep running mode. job finished");
                             break;
                         }
                     } else {
                         int waitInterval = config.getWaitInterval();
-                        logger.info("wait " + waitInterval + " minutes for next fetch for hid:" + hid);
-                        this.sleep(1000 * 60 * waitInterval);
+                        logger.info("wait " + waitInterval + " seconds for next fetch");
+                        Thread.sleep(1000 * waitInterval);
                     }
 
                 } catch (Exception ex) {
                     ex.printStackTrace();
-                    logger.error("Exception for hid:" + hid, ex);
+                    logger.error("Exception: ", ex);
                     continue;
                 } finally {
-                    logger.info("completed one batch for hid:" + hid);
+                    logger.info("completed one batch");
                 }
             }
         } finally {
-            logger.info("**************completed thread for hid:" + hid + "*******************");
+            logger.info("************** completed thread *******************");
             try {
                 rs.close();
             } catch (Exception ex) {
@@ -161,45 +154,23 @@ public class ESImport extends Thread{
 	}
 	
     private Map<String, Object> rowToMap(ResultSet rs) throws SQLException {
-
         Map<String, Object> fields = new LinkedHashMap<String, Object>();
-
-        String refid = rs.getString("refid");
-        Date postTime = rs.getDate("posttime");
-        int year = yearBase + postTime.getYear();
-        int month = postTime.getMonth()+1;
-        fields.put("uuid", year + "!" + month + "!" + refid);
-        fields.put("bid", rs.getInt("bid"));
+        Date createTime = rs.getDate("CreateTime");
+        int year = yearBase + createTime.getYear();
+        int month = createTime.getMonth()+1;
+        fields.put("rid", rs.getString("rid"));
         fields.put("year", year);
         fields.put("month", month);
-        fields.put("postTime", rs.getTimestamp("posttime"));
-        fields.put("title", rs.getString("title"));
-        fields.put("content", rs.getString("contents"));
-
-        String tags = rs.getString("taglist");
-        if (tags != null && !tags.isEmpty()) {
-            for (String tag : tags.split(" ")) {
-                if (tag.startsWith("~")) {
-                    int index = tag.lastIndexOf("~");
-                    String label = tag.substring(1, index).toLowerCase();
-                    String value = tag.substring(index + 1);
-                    if (value != null && !"null".equals(value)) {
-                    	if(label != null && label.equals("age")){
-                    		fields.put("sys_" + label, Integer.parseInt(value));
-                    	}else{
-                    		fields.put("sys_" + label, value);
-                    	}
-                    }
-                }
-            }
-        }
+        fields.put("createTime", createTime);
+        fields.put("area", rs.getString("Area"));
+        fields.put("searchString", rs.getString("SearchString"));
         return fields;
     }
 	
-	private void index(String hbindexName, BulkRequestBuilder bulkRequest, Map<String, Object> fields) throws IOException{
+	private void index(String indexName, BulkRequestBuilder bulkRequest, Map<String, Object> fields) throws IOException{
 		String json = XContentFactory.jsonBuilder().map(fields).string();
-		String bidStr = fields.get("bid")+"";
-		String yearStr = fields.get("year")+"";
-        bulkRequest.add( client.prepareIndex(hbindexName, typename, bidStr).setRouting(yearStr).setSource(json) );
+		String rid = (String)fields.get("rid");
+		String yearmonthStr = ""+fields.get("year")+fields.get("month");
+        bulkRequest.add( client.prepareIndex(indexName, typename, rid).setRouting(yearmonthStr).setSource(json) );
 	}
 }
