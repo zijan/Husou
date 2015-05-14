@@ -20,6 +20,7 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
+import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -194,6 +195,9 @@ public class ESImport extends Thread{
 			}else{
 				storedCreateTimeLong = -1;
 			}
+		} catch (NoNodeAvailableException e) {
+			storedCreateTimeLong = -1;
+			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

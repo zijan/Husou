@@ -6,14 +6,14 @@ import java.util.Properties;
 
 import org.apache.log4j.Logger;
 
-public class BeatConverter {
-	private static Logger log = Logger.getLogger(BeatConverter.class);
+public class DataConverter {
+	private static Logger log = Logger.getLogger(DataConverter.class);
 
     public static void main(String[] args) throws Exception {
         Properties prop = new Properties();
         InputStream file = null;
         try {
-            prop.load(BeatConverter.class.getClassLoader().getResourceAsStream("config.properties"));
+            prop.load(DataConverter.class.getClassLoader().getResourceAsStream("config.properties"));
             
             for (String arg : args) {
                 String[] nv = arg.split("=");
