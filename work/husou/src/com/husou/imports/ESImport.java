@@ -6,6 +6,9 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -34,7 +37,7 @@ public class ESImport extends Thread{
     private TransportClient client;
     
     private String indexName = "unicom";
-    private String typename = "searchword";
+    private String typeName = "searchword";
     
 	public ESImport(Config config) throws Exception {
         Class.forName("com.mysql.jdbc.Driver");
@@ -45,45 +48,25 @@ public class ESImport extends Thread{
         client = new TransportClient(settings);
         client.addTransportAddress(new InetSocketTransportAddress(config.getEsHost(), 9300));
         
+        indexName = config.getIndexName();
+        typeName = config.getTypeName();
     }
 	
-	public void run() {
+	public void run(){
         logger.info("started thread batch size:" + config.getBatchSize());
-        String sql = "SELECT CONCAT(t.Number, UNIX_TIMESTAMP(t.CreateTime)) rid, t.* FROM `2015` t WHERE UNIX_TIMESTAMP(t.CreateTime) >= ? LIMIT " + config.getBatchSize();
+        String sql = "SELECT CONCAT(t.Number, UNIX_TIMESTAMP(t.CreateTime)) rid, t.* FROM `2015` t WHERE UNIX_TIMESTAMP(t.CreateTime) >= ? ORDER BY t.CreateTime LIMIT " + config.getBatchSize();
 
         PreparedStatement stat = null;
         ResultSet rs = null;
         
         BulkRequestBuilder bulkRequest = client.prepareBulk();
-        long storedCreateTimeLong = -1;
         
-        //check index exist
-        client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet(); 
-        ClusterStateResponse response = client.admin().cluster().prepareState().execute().actionGet(); 
-        boolean hasIndex = response.getState().metaData().hasIndex(indexName);
-        if(hasIndex){
-        	//find last bid
-        	SearchRequestBuilder builder= client.prepareSearch(indexName)  
-                    .setTypes(typename)  
-                    .setSearchType(SearchType.DEFAULT)  
-                    .setFrom(0)  
-                    .setSize(1)
-                    .addSort(SortBuilders.fieldSort("CreateTime").order(SortOrder.DESC)); 
-
-            SearchResponse searchResponse = builder.execute().actionGet();
-            SearchHits hits = searchResponse.getHits();
-            
-            if(hits.totalHits() < 1){
-            	storedCreateTimeLong = 0;
-            }else{
-            	Date createTime = (Date)hits.getAt(0).getSource().get("CreateTime");
-            	storedCreateTimeLong = createTime.getTime() / 1000;
-            }
-        }else{
-        	storedCreateTimeLong = 0;
+        long storedCreateTimeLong = loadLastCreateTime();
+        if(storedCreateTimeLong == -1){
+        	logger.info("error on elastic search, exit!");
+        	return;
         }
-        
-        
+
         try {
             while (true) {
                 try {
@@ -92,17 +75,20 @@ public class ESImport extends Thread{
                 	
                     stat = conn.prepareStatement(sql);
                     stat.setLong(1, storedCreateTimeLong);
-
-                    logger.info("\n" + stat);
                     rs = stat.executeQuery();
 
+                    long storedCreateTimeLongLast = 0;
                     boolean empty = true;
                     int i = 0;
                     while (rs.next()) {
                         i++;
-                        empty = false;
                         Map<String, Object> fields = rowToMap(rs);
                         index(indexName, bulkRequest, fields);
+                        storedCreateTimeLongLast = rs.getTimestamp("CreateTime").getTime() / 1000;
+                    }
+                    if(storedCreateTimeLongLast > storedCreateTimeLong ){
+                    	empty = false;
+                    	storedCreateTimeLong = storedCreateTimeLongLast;
                     }
                     
                     if(!empty){
@@ -113,7 +99,7 @@ public class ESImport extends Thread{
             	        }
             	        
             	        long time = (System.currentTimeMillis() - timeflag)/1000;
-                        logger.info("added " + i + " docs [takes: "+time+"s]");
+                        logger.info("added " + i + " docs [took: "+time+"s] last create time [" +storedCreateTimeLong + "." + new Date(storedCreateTimeLong * 1000)+ "]");
                         if (!config.isKeepRunning()) {
                             logger.info("Not in keep running mode. job finished");
                             break;
@@ -155,7 +141,7 @@ public class ESImport extends Thread{
 	
     private Map<String, Object> rowToMap(ResultSet rs) throws SQLException {
         Map<String, Object> fields = new LinkedHashMap<String, Object>();
-        Date createTime = rs.getDate("CreateTime");
+        Date createTime = rs.getTimestamp("CreateTime");
         int year = yearBase + createTime.getYear();
         int month = createTime.getMonth()+1;
         fields.put("rid", rs.getString("rid"));
@@ -171,6 +157,47 @@ public class ESImport extends Thread{
 		String json = XContentFactory.jsonBuilder().map(fields).string();
 		String rid = (String)fields.get("rid");
 		String yearmonthStr = ""+fields.get("year")+fields.get("month");
-        bulkRequest.add( client.prepareIndex(indexName, typename, rid).setRouting(yearmonthStr).setSource(json) );
+        bulkRequest.add( client.prepareIndex(indexName, typeName, rid).setRouting(yearmonthStr).setSource(json) );
+	}
+	
+	private long loadLastCreateTime(){
+		long storedCreateTimeLong = 0;
+
+		try {
+			//check index exist
+			client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet(); 
+			ClusterStateResponse response = client.admin().cluster().prepareState().execute().actionGet(); 
+			boolean hasIndex = response.getState().metaData().hasIndex(indexName);
+			if(hasIndex){
+				//find last createTime
+				SearchRequestBuilder builder= client.prepareSearch(indexName)  
+			            .setTypes(typeName)  
+			            .setSearchType(SearchType.DEFAULT)  
+			            .setFrom(0)  
+			            .setSize(1)
+			            .addSort(SortBuilders.fieldSort("createTime").order(SortOrder.DESC)); 
+
+			    SearchResponse searchResponse = builder.execute().actionGet();
+			    SearchHits hits = searchResponse.getHits();
+			    
+			    if(hits.totalHits() < 1){
+			    	storedCreateTimeLong = 0;
+			    }else{
+			    	try {
+			    		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.000Z");
+			            Date createTime = df.parse(((String)hits.getAt(0).getSource().get("createTime")).replace("Z", "GMT"));
+			        	storedCreateTimeLong = createTime.getTime() / 1000;
+					} catch (ParseException e) {
+						e.printStackTrace();
+					}
+			    }
+			}else{
+				storedCreateTimeLong = -1;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+        return storedCreateTimeLong;
 	}
 }

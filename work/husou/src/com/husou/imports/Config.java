@@ -11,6 +11,8 @@ public class Config {
     private boolean keepRunning;
     private String clusterName;
     private String esHost;
+    private String indexName;
+    private String typeName;
 
     public Config() {
     }
@@ -28,6 +30,8 @@ public class Config {
         this.keepRunning = Boolean.valueOf(keepRunning);
         this.clusterName = prop.getProperty("es.cluster.name", "elasticsearch");
         this.esHost = prop.getProperty("esHost", "localhost");
+        this.indexName = prop.getProperty("indexName", "unicom");
+        this.typeName = prop.getProperty("typeName", "searchword");
     }
 
     public String getDbUrl() {
@@ -92,5 +96,21 @@ public class Config {
 
 	public void setEsHost(String esHost) {
 		this.esHost = esHost;
+	}
+
+	public String getIndexName() {
+		return indexName;
+	}
+
+	public void setIndexName(String indexName) {
+		this.indexName = indexName;
+	}
+
+	public String getTypeName() {
+		return typeName;
+	}
+
+	public void setTypeName(String typeName) {
+		this.typeName = typeName;
 	}
 }
