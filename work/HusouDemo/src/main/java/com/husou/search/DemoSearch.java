@@ -2,7 +2,6 @@ package com.husou.search;
 
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.joda.time.DateTime;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -17,7 +16,9 @@ import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogram.Buck
 import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramBuilder;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsBuilder;
-import org.elasticsearch.common.joda.time.format.DateTimeFormatter;
+import org.elasticsearch.search.sort.FieldSortBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,14 +46,17 @@ public class DemoSearch {
 				.interval(DateHistogram.Interval.DAY)
 				.format("yyyy-MM-dd")
 				.minDocCount(0)
-				.extendedBounds(1430006400000l, 1430438400000l);
+				.extendedBounds("2015-04-26", "2015-05-01");
 		TermsBuilder abArea = AggregationBuilders.terms("aggs_area").field("area").size(5);
+		
+		FieldSortBuilder sb = SortBuilders.fieldSort("createTime").order(SortOrder.DESC);
 		
 		SearchResponse sr = client.prepareSearch(indexName).setTypes(typeName)
 				.setQuery(qb)
 				.setPostFilter(fb)
 				.addAggregation(abDate)
 				.addAggregation(abArea)
+				.addSort(sb)
 				.setSize(10)
 				.execute()
 				.actionGet();
@@ -69,7 +73,10 @@ public class DemoSearch {
 			logger.debug("["+bucket.getKeyAsText()+"]["+bucket.getDocCount()+"]");
 		}
 		
-		logger.debug("aggs_area: ["+aggArea.getBuckets()+"]");
+		for(Terms.Bucket bucket : aggArea.getBuckets()){
+			logger.debug("["+bucket.getKeyAsText()+"]["+bucket.getDocCount()+"]");
+		}
+		
 
 		client.close();
 	}

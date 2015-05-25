@@ -25,6 +25,11 @@ http://localhost:9200/unicom/searchword/_search
       }
     }
   },
+  "sort": {
+    "createTime": {
+      "order": "desc"
+    }
+  },
   "highlight": {
     "pre_tags": [
       "<tag1>",
