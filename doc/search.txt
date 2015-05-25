@@ -1,0 +1,61 @@
+1）动态index
+2）RESTFull API
+3）语义分析
+4）由ID取数据
+5）Hbase
+6）and or not
+
+http://localhost:9200/unicom/searchword/_search
+
+{
+  "query": {
+    "filtered": {
+      "query": {
+        "term": {
+          "searchString": "飞机"
+        }
+      },
+      "filter": {
+        "range": {
+          "createTime": {
+            "from": "2015-04-26",
+            "to": "2015-05-01"
+          }
+        }
+      }
+    }
+  },
+  "highlight": {
+    "pre_tags": [
+      "<tag1>",
+      "<tag2>"
+    ],
+    "post_tags": [
+      "</tag1>",
+      "</tag2>"
+    ],
+    "fields": {
+      "searchString": {}
+    }
+  },
+  "aggs": {
+    "aggs_date": {
+      "date_histogram": {
+        "field": "createTime",
+        "interval": "1d",
+        "format": "yyyy-MM-dd",
+        "min_doc_count": 0,
+        "extended_bounds": {
+          "min": "2015-04-26",
+          "max": "2015-05-01"
+        }
+      }
+    },
+    "aggs_area": {
+      "terms": {
+        "field": "area",
+        "size": 5
+      }
+    }
+  }
+}
