@@ -38,9 +38,9 @@ public class DemoSearch {
 		String typeName = Config.instance.getTypeName();
 		
 		//QueryStringQueryBuilder qb = QueryBuilders.queryStringQuery("飞机");
-		QueryBuilder qb = QueryBuilders.termQuery("searchString", "飞机");
 		RangeFilterBuilder fb = FilterBuilders.rangeFilter("createTime").from("2015-04-26").to("2015-05-01");
-		
+		QueryBuilder qb = QueryBuilders.filteredQuery(QueryBuilders.termQuery("searchString", "飞机"), fb);
+
 		DateHistogramBuilder abDate = AggregationBuilders.dateHistogram("aggs_date")
 				.field("createTime")
 				.interval(DateHistogram.Interval.DAY)
@@ -53,7 +53,6 @@ public class DemoSearch {
 		
 		SearchResponse sr = client.prepareSearch(indexName).setTypes(typeName)
 				.setQuery(qb)
-				.setPostFilter(fb)
 				.addAggregation(abDate)
 				.addAggregation(abArea)
 				.addSort(sb)
@@ -62,7 +61,6 @@ public class DemoSearch {
 				.actionGet();
 		logger.debug("TotalHits: ["+sr.getHits().getTotalHits()+"]");
 		for(SearchHit hit : sr.getHits()){
-			//logger.debug("["+hit.getSource().get("bid")+"]["+hit.getSource().get("year")+"]["+hit.getSource().get("title")+"]");
 			logger.debug("["+hit.getSource()+"]");
 		}
 		
