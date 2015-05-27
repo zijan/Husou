@@ -1,10 +1,11 @@
 package com.husou.search.controller;
 
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
 
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.transport.TransportClient;
@@ -30,11 +31,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.husou.entity.UnicomSearchRequest;
 import com.husou.entity.UnicomSearchResult;
 import com.husou.imports.Config;
 
@@ -50,15 +49,18 @@ public class MainAPIController {
 	
 	@RequestMapping("/api/mainSearch")
     @ResponseBody
-    public Map<String, Object> mainSearch(@RequestBody UnicomSearchRequest unicomSearchRequest) {
-		Map<String, Object> resultMap = doMainSearch(unicomSearchRequest);
+    public Map<String, Object> mainSearch(HttpServletRequest request) {
+		String query = request.getParameter("query");
+		String startDate = request.getParameter("startDate");
+		String endDate = request.getParameter("endDate");
+		Map<String, Object> resultMap = doMainSearch(query, startDate, endDate);
         return resultMap;
     }
 
-    private Map<String, Object> doMainSearch(UnicomSearchRequest unicomSearchRequest){
+    private Map<String, Object> doMainSearch(String query, String startDate, String endDate){
     	logger.debug("doMainSearch~~~");
 
-    	Map<String, Object> resultMap = new HashMap<String, Object>();
+    	Map<String, Object> resultMap = new LinkedHashMap<String, Object>();
     	
 		Settings settings = ImmutableSettings.settingsBuilder().put("cluster.name", Config.instance.getClusterName()).build();
 		TransportClient client = new TransportClient(settings);
@@ -68,15 +70,15 @@ public class MainAPIController {
 		String typeName = Config.instance.getTypeName();
 		
 		//QueryStringQueryBuilder qb = QueryBuilders.queryStringQuery("飞机");
-		RangeFilterBuilder fb = FilterBuilders.rangeFilter("createTime").from(unicomSearchRequest.getStartDate()).to(unicomSearchRequest.getEndDate());
-		QueryBuilder qb = QueryBuilders.filteredQuery(QueryBuilders.termQuery("searchString", unicomSearchRequest.getQuery()), fb);
+		RangeFilterBuilder fb = FilterBuilders.rangeFilter("createTime").from(startDate).to(endDate);
+		QueryBuilder qb = QueryBuilders.filteredQuery(QueryBuilders.termQuery("searchString", query), fb);
 
 		DateHistogramBuilder abDate = AggregationBuilders.dateHistogram("aggs_date")
 				.field("createTime")
 				.interval(DateHistogram.Interval.DAY)
 				.format("yyyy-MM-dd")
 				.minDocCount(0)
-				.extendedBounds(unicomSearchRequest.getStartDate(), unicomSearchRequest.getEndDate());
+				.extendedBounds(startDate, endDate);
 		TermsBuilder abArea = AggregationBuilders.terms("aggs_area").field("area").size(5);
 		
 		FieldSortBuilder sb = SortBuilders.fieldSort("createTime").order(SortOrder.DESC);
@@ -93,6 +95,8 @@ public class MainAPIController {
 		List<UnicomSearchResult> list = new ArrayList<UnicomSearchResult>();
 		
 		logger.debug("TotalHits: ["+sr.getHits().getTotalHits()+"]");
+		resultMap.put("Total", sr.getHits().getTotalHits());
+		
 		for(SearchHit hit : sr.getHits()){
 			UnicomSearchResult usr = new UnicomSearchResult();
 			usr.setRid((String)hit.getSource().get("rid"));
@@ -101,19 +105,23 @@ public class MainAPIController {
 			usr.setCreateTime((String)hit.getSource().get("createTime"));
 			list.add(usr);
 		}
-		
 		resultMap.put("SearchResultList", list);
 		
 		DateHistogram aggDate = sr.getAggregations().get("aggs_date");
-		Terms aggArea = sr.getAggregations().get("aggs_area");
-		
+		Map<String, Integer> aggDateMap = new LinkedHashMap<String, Integer>();
 		for(Bucket bucket : aggDate.getBuckets()){
 			logger.debug("["+bucket.getKeyAsText()+"]["+bucket.getDocCount()+"]");
+			aggDateMap.put(bucket.getKeyAsText().toString(), (int)bucket.getDocCount());
 		}
+		resultMap.put("AggDate", aggDateMap);
 		
+		Terms aggArea = sr.getAggregations().get("aggs_area");
+		Map<String, Integer> aggAreaMap = new LinkedHashMap<String, Integer>();
 		for(Terms.Bucket bucket : aggArea.getBuckets()){
 			logger.debug("["+bucket.getKeyAsText()+"]["+bucket.getDocCount()+"]");
+			aggAreaMap.put(bucket.getKeyAsText().toString(), (int)bucket.getDocCount());
 		}
+		resultMap.put("AggArea", aggAreaMap);
 		
 		client.close();
 		

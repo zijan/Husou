@@ -5,6 +5,8 @@
 5£©Hbase
 6£©and or not
 
+http://localhost:8080/api/mainSearch?query=·É»ú&startDate=2015-04-26&endDate=2015-05-01
+
 http://localhost:9200/unicom/searchword/_search
 
 {
