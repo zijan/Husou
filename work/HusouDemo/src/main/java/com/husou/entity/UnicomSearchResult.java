@@ -9,6 +9,9 @@ public class UnicomSearchResult {
 	private String area;
 	private String createTime;
 	
+	private String sentiment;
+	private String classify;
+	
 	public String getRid() {
 		return rid;
 	}
@@ -32,5 +35,17 @@ public class UnicomSearchResult {
 	}
 	public void setCreateTime(String createTime) {
 		this.createTime = createTime;
+	}
+	public String getSentiment() {
+		return sentiment;
+	}
+	public void setSentiment(String sentiment) {
+		this.sentiment = sentiment;
+	}
+	public String getClassify() {
+		return classify;
+	}
+	public void setClassify(String classify) {
+		this.classify = classify;
 	}
 }

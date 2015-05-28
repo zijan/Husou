@@ -1,5 +1,7 @@
 package com.husou.search.controller;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -7,6 +9,12 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -36,6 +44,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.husou.entity.UnicomSearchResult;
 import com.husou.imports.Config;
+import com.husou.util.JsonUtil;
 
 @Controller
 @EnableAutoConfiguration
@@ -45,6 +54,8 @@ public class MainAPIController {
 	
 	public static void main(String[] args) throws Exception {
         SpringApplication.run(MainAPIController.class, args);
+        //MainAPIController mapi = new MainAPIController();
+        //mapi.test();
     }
 	
 	@RequestMapping("/api/mainSearch")
@@ -103,6 +114,12 @@ public class MainAPIController {
 			usr.setSearchString((String)hit.getSource().get("searchString"));
 			usr.setArea((String)hit.getSource().get("area"));
 			usr.setCreateTime((String)hit.getSource().get("createTime"));
+			
+			String sentimentPath = "";
+			String sentimentRequestBody = "";
+			String positiveStr = nlpQQCall(sentimentPath, sentimentRequestBody).get("positive")+"";
+			
+			
 			list.add(usr);
 		}
 		resultMap.put("SearchResultList", list);
@@ -128,4 +145,49 @@ public class MainAPIController {
 		return resultMap;
 	}
 
+    private Map<String, Object> nlpQQCall(String path, String requestBody){
+    	Map<String, Object> resultMap = null;
+    	try {
+    		 
+    		CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+    		
+    		//HttpPost postRequest = new HttpPost("http://api.nlp.qq.com/text/sentiment");
+    		HttpPost postRequest = new HttpPost(path);
+    	 
+    		//StringEntity input = new StringEntity("{\"content\":\"双万兆服务器就是好，只是内存小点\"}", ContentType.APPLICATION_JSON);
+    		StringEntity input = new StringEntity(requestBody, ContentType.APPLICATION_JSON);
+			input.setContentType("application/json");
+			postRequest.setEntity(input);
+			postRequest.setHeader("Accept", "application/json");
+			postRequest.setHeader("Content-Type", "application/json");
+			postRequest.setHeader("S-Token", "116264257562853456131432563347");
+			postRequest.setHeader("S-Openid", "37287685");
+	 
+			HttpResponse response = httpClient.execute(postRequest);
+	 
+			if (response.getStatusLine().getStatusCode() != 200) {
+				throw new RuntimeException("Failed : HTTP error code : "
+					+ response.getStatusLine().getStatusCode());
+			}
+	 
+			BufferedReader br = new BufferedReader(new InputStreamReader((response.getEntity().getContent())));
+	 
+			StringBuffer result = new StringBuffer();
+			String line = "";
+			while ((line = br.readLine()) != null) {
+				result.append(line);
+			}
+			
+			logger.debug("result: "+result);
+ 
+			resultMap = JsonUtil.deserialize(result.toString());
+			
+		    httpClient.close();
+     
+    	  } catch (Exception e) {
+    		e.printStackTrace();
+    	  }
+    	
+    	return resultMap;
+    }
 }
