@@ -60,15 +60,15 @@ public class MainAPIController {
 	
 	@RequestMapping("/api/mainSearch")
     @ResponseBody
-    public Map<String, Object> mainSearch(HttpServletRequest request) {
+    public String mainSearch(HttpServletRequest request) {
 		String query = request.getParameter("query");
 		String startDate = request.getParameter("startDate");
 		String endDate = request.getParameter("endDate");
-		Map<String, Object> resultMap = doMainSearch(query, startDate, endDate);
-        return resultMap;
+		String result = doMainSearch(query, startDate, endDate);
+        return result;
     }
 
-    private Map<String, Object> doMainSearch(String query, String startDate, String endDate){
+    private String doMainSearch(String query, String startDate, String endDate){
     	logger.debug("doMainSearch~~~");
 
     	Map<String, Object> resultMap = new LinkedHashMap<String, Object>();
@@ -115,10 +115,15 @@ public class MainAPIController {
 			usr.setArea((String)hit.getSource().get("area"));
 			usr.setCreateTime((String)hit.getSource().get("createTime"));
 			
-			String sentimentPath = "";
-			String sentimentRequestBody = "";
+			String sentimentPath = "http://api.nlp.qq.com/text/sentiment";
+			String sentimentRequestBody = "{\"content\":\""+usr.getSearchString()+"\"}";
 			String positiveStr = nlpQQCall(sentimentPath, sentimentRequestBody).get("positive")+"";
+			usr.setSentiment(positiveStr);
 			
+			sentimentPath = "http://api.nlp.qq.com/text/classify";
+			sentimentRequestBody = "{\"content\":\""+usr.getSearchString()+"\"}";
+			String classify = ((List<Map<String, String>>)nlpQQCall(sentimentPath, sentimentRequestBody).get("classes")).get(0).get("class")+"";
+			usr.setClassify(classify);
 			
 			list.add(usr);
 		}
@@ -141,8 +146,8 @@ public class MainAPIController {
 		resultMap.put("AggArea", aggAreaMap);
 		
 		client.close();
-		
-		return resultMap;
+
+		return JsonUtil.prettyPrint(resultMap);
 	}
 
     private Map<String, Object> nlpQQCall(String path, String requestBody){

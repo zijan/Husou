@@ -42,8 +42,18 @@ public class JsonUtil {
     public static String prettyPrint(String jsonStr){
         String result = "";
         try {
-
             Object json = jasonMapper.readValue(jsonStr, Object.class);
+            result = jasonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } 
+        
+        return result;
+    }
+    
+    public static String prettyPrint(Object json){
+        String result = "";
+        try {
             result = jasonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
         } catch (Exception e) {
             e.printStackTrace();
