@@ -2,6 +2,7 @@ package com.husou.search.controller;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -122,7 +123,12 @@ public class MainAPIController {
 			
 			sentimentPath = "http://api.nlp.qq.com/text/classify";
 			sentimentRequestBody = "{\"content\":\""+usr.getSearchString()+"\"}";
-			String classify = ((List<Map<String, String>>)nlpQQCall(sentimentPath, sentimentRequestBody).get("classes")).get(0).get("class")+"";
+			String classify = ((List<Map<String, String>>)nlpQQCall(sentimentPath, sentimentRequestBody).get("classes")).get(0).get("class");
+			try {
+				classify = new String(classify.getBytes(), "utf-8");
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
 			usr.setClassify(classify);
 			
 			list.add(usr);

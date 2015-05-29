@@ -41,6 +41,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <configuration>
                     <mainClass>com.husou.search.controller.MainAPIController</mainClass>
+                    <encoding>UTF8</encoding> 
                 </configuration>
             </plugin>
         </plugins>
