@@ -165,7 +165,7 @@ public class MainAPIController {
 			postRequest.setEntity(input);
 			postRequest.setHeader("Accept", "application/json");
 			postRequest.setHeader("Content-Type", "application/json");
-			postRequest.setHeader("S-Token", "116264257562853456131432563347");
+			postRequest.setHeader("S-Token", Config.instance.getProperty("token"));
 			postRequest.setHeader("S-Openid", "37287685");
 	 
 			HttpResponse response = httpClient.execute(postRequest);
