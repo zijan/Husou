@@ -118,18 +118,24 @@ public class MainAPIController {
 			
 			String sentimentPath = "http://api.nlp.qq.com/text/sentiment";
 			String sentimentRequestBody = "{\"content\":\""+usr.getSearchString()+"\"}";
-			String positiveStr = nlpQQCall(sentimentPath, sentimentRequestBody).get("positive")+"";
-			usr.setSentiment(positiveStr);
+			Map<String, Object> retMap = nlpQQCall(sentimentPath, sentimentRequestBody);
+			if(retMap!=null){
+				String positiveStr = retMap.get("positive")+"";
+				usr.setSentiment(positiveStr);
+			}
 			
 			sentimentPath = "http://api.nlp.qq.com/text/classify";
 			sentimentRequestBody = "{\"content\":\""+usr.getSearchString()+"\"}";
-			String classify = ((List<Map<String, String>>)nlpQQCall(sentimentPath, sentimentRequestBody).get("classes")).get(0).get("class");
-			try {
-				classify = new String(classify.getBytes(), "utf-8");
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
+			retMap = nlpQQCall(sentimentPath, sentimentRequestBody);
+			if(retMap!=null){
+				String classify = ((List<Map<String, String>>)retMap.get("classes")).get(0).get("class");
+				try {
+					classify = new String(classify.getBytes(), "utf-8");
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+				}
+				usr.setClassify(classify);
 			}
-			usr.setClassify(classify);
 			
 			list.add(usr);
 		}
